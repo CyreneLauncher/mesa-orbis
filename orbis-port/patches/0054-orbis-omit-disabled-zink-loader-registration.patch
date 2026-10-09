@@ -1,0 +1,23 @@
+--- a/src/gallium/auxiliary/target-helpers/drm_helper.h
++++ b/src/gallium/auxiliary/target-helpers/drm_helper.h
+@@ -430,7 +430,7 @@
+ };
+ DRM_DRIVER_DESCRIPTOR(zink, zink_driconf, ARRAY_SIZE(zink_driconf))
+ 
+-#else
++#elif !defined(HAVE_ORBIS_PLATFORM)
+ DRM_DRIVER_DESCRIPTOR_STUB(zink)
+ #endif
+ 
+--- a/src/gallium/auxiliary/pipe-loader/pipe_loader_drm.c
++++ b/src/gallium/auxiliary/pipe-loader/pipe_loader_drm.c
+@@ -88,7 +88,9 @@
+    &ethosu_driver_descriptor,
+    &tegra_driver_descriptor,
+    &lima_driver_descriptor,
++#ifndef HAVE_ORBIS_PLATFORM
+    &zink_driver_descriptor,
++#endif
+    &kmsro_driver_descriptor,
+ };
+ 
