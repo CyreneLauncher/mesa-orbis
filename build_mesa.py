@@ -405,7 +405,7 @@ def build(sources, sdk, output, radeonsi=False, keep_going=False):
                 "sha256": sha256(path), "bytes": path.stat().st_size}
         run([sys.executable, INTEGRATION / "graphics-probe/tools/audit_link.py",
              *[arg for archive in archives for arg in ("--archive", archive)],
-             "--elf", probe], output / "symbol-audit.log", env=env)
+             "--elf", probe, "--sdk", sdk], output / "symbol-audit.log", env=env)
         manifest["audits"] = {"link_inputs": str(link_inputs.relative_to(output)),
                               "symbols": "symbol-audit.log",
                               "wchar": "gllinkprobe-wchar-audit.log"}
