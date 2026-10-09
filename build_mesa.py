@@ -340,11 +340,10 @@ def build(sources, sdk, output, radeonsi=False, keep_going=False):
                    "-Dxmlconfig=disabled", "-Dbuildtype=release", "-Dplatforms=orbis",
                    "-Dzlib=enabled", "-Dshader-cache=enabled", "-Dforce_fallback_for=zlib",
                    "-Dradv-build-id=" + build_id]
-        # radeonsi (Mesa's native AMD OpenGL driver, compiled with ACO - there is no LLVM here) next to
-        # Zink, for the port that drops Zink's GL-to-Vulkan translation. Build it into its own --output.
-        options += (["-Dgallium-drivers=zink,radeonsi", "-Damd-use-llvm=false",
-                     "-Dradeonsi-build-id=" + build_id] if radeonsi
-                    else ["-Dgallium-drivers=zink"])
+        # Native AMD OpenGL and RADV are the supported Orbis drivers. Do not
+        # compile Zink: EGL uses the native image loader even without overrides.
+        options += ["-Dgallium-drivers=radeonsi", "-Damd-use-llvm=false",
+                    "-Dradeonsi-build-id=" + build_id]
         setup = [venv / "meson", "setup", build_dir, mesa]
         configured = (build_dir / "meson-info/meson-info.json").is_file()
         if configured:
@@ -429,7 +428,7 @@ def main():
     parser.add_argument("--check-compat")
     parser.add_argument("--verify-deps")
     parser.add_argument("--verify-support-tree")
-    parser.add_argument("--radeonsi", action="store_true", help="also build the radeonsi Gallium driver")
+    parser.add_argument("--radeonsi", action="store_true", help="compatibility option; radeonsi is always built")
     parser.add_argument("--keep-going", action="store_true", help="ninja -k 0: report every failing object")
     args = parser.parse_args()
     try:
