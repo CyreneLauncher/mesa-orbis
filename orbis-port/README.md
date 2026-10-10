@@ -24,3 +24,9 @@ Bootstrap needs Python 3.12 on Ubuntu 24.04 for the pinned wheel tags and Debian
 refuses to write outside it. The launcher sets it to its `graphics-probe/build`. lwjgl-orbis's
 platform PRX links the archives this build produces. Port changes belong here; update the
 launcher's repository pin after committing them.
+
+Release: `.github/workflows/orbis-release.yml` builds this chain on GitHub-hosted Ubuntu and, with
+`publish` checked, releases `mesa-<commit>/mesa-orbis-sdk.tar.xz` with the contents
+`release.json` lists: the driver archives, build manifest, Mesa headers and licence, and the built
+orbis-compat and porting-kit trees. lwjgl-orbis links its platform PRX against that release.
+`dependencies.lock.json` pins the orbis-runtime-support revision the workflow uses.
