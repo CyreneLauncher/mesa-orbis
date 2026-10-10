@@ -24,7 +24,7 @@ jobs:
     env:
       ORBIS_BUILD_ROOT: ${{ github.workspace }}/build
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: mesa-orbis
           persist-credentials: false
@@ -39,7 +39,7 @@ jobs:
               for key, value in item.items():
                   print(f'{name}-{key}={value}')
           PYTHON
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ steps.deps.outputs['orbis-runtime-support-repository'] }}
           ref: ${{ steps.deps.outputs['orbis-runtime-support-revision'] }}
@@ -67,7 +67,7 @@ jobs:
             --output "$ORBIS_BUILD_ROOT/vulkan-mesa"
       - name: Save logs
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: logs
           path: |
@@ -81,7 +81,7 @@ jobs:
             --spec mesa-orbis/orbis-port/release.json --dist dist
           (cd dist && sha256sum ./*.tar.xz | sed 's# \./# #' > SHA256SUMS)
           cat dist/SHA256SUMS
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release
           path: dist/
