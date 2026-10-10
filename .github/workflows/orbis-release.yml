@@ -1,0 +1,98 @@
+name: Release Mesa for Orbis
+# Builds this port with the SDKs and dependencies pinned in orbis-port/dependencies.lock.json and, when
+# publish is checked, publishes the result as the release <tag_prefix>-<commit> named in
+# orbis-port/release.json. Cyrene Launcher pins that release by SHA-256 instead of building the port.
+# CYRENE_RELEASES_TOKEN must be able to read the private CyreneLauncher repositories and releases.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the release for this commit
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      contents: write
+    env:
+      ORBIS_BUILD_ROOT: ${{ github.workspace }}/build
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: mesa-orbis
+          persist-credentials: false
+          # prepare_sources.py checks out the pinned Mesa base commit from this checkout.
+          fetch-depth: 0
+      - name: Read pinned dependencies
+        id: deps
+        run: |
+          python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+          import json
+          for name, item in json.load(open('mesa-orbis/orbis-port/dependencies.lock.json')).items():
+              for key, value in item.items():
+                  print(f'{name}-{key}={value}')
+          PYTHON
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ steps.deps.outputs['orbis-runtime-support-repository'] }}
+          ref: ${{ steps.deps.outputs['orbis-runtime-support-revision'] }}
+          path: orbis-runtime-support
+          token: ${{ secrets.CYRENE_RELEASES_TOKEN || github.token }}
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-18 lld-18 llvm-18 llvm-18-dev glslang-tools autoconf cmake ninja-build pkg-config zip unzip python3-venv python3-pip python3-pyelftools
+          echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
+      - name: Provision pinned SDKs
+        run: python3 orbis-runtime-support/provision_sdk.py --destination "$RUNNER_TEMP/orbis-sdk"
+      - name: Make room on the disposable runner
+        run: sudo rm -rf /usr/local/lib/android /usr/share/swift /opt/ghc
+      - name: Prepare pinned sources and host tools
+        run: |
+          python3 mesa-orbis/orbis-port/tools/prepare_sources.py --output "$ORBIS_BUILD_ROOT/sources"
+          python3 mesa-orbis/orbis-port/tools/bootstrap_deps.py --output "$ORBIS_BUILD_ROOT/deps/clean"
+      - name: Build orbis-compat
+        run: bash "$ORBIS_BUILD_ROOT/sources/orbis-compat/build.sh"
+      - name: Build Mesa
+        run: |
+          python3 mesa-orbis/build_mesa.py --sources "$ORBIS_BUILD_ROOT/sources" --sdk "$PS4_TOOLCHAIN" \
+            --output "$ORBIS_BUILD_ROOT/vulkan-mesa"
+      - name: Save logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: logs
+          path: |
+            build/vulkan-mesa/*.log
+            build/vulkan-mesa/mesa/meson-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Pack release asset
+        run: |
+          python3 orbis-runtime-support/release_archive.py pack --root "$ORBIS_BUILD_ROOT" \
+            --spec mesa-orbis/orbis-port/release.json --dist dist
+          (cd dist && sha256sum ./*.tar.xz | sed 's# \./# #' > SHA256SUMS)
+          cat dist/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prefix=$(python3 -c "import json;print(json.load(open('mesa-orbis/orbis-port/release.json'))['tag_prefix'])")
+          gh release create "$prefix-${GITHUB_SHA::12}" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Mesa for Orbis ${GITHUB_SHA::12}" \
+            --notes "Built on GitHub-hosted Ubuntu from commit $GITHUB_SHA with the SDKs and dependencies pinned in orbis-port/dependencies.lock.json. The archive holds the build outputs listed in orbis-port/release.json and a SHA-256 inventory; unpack it with orbis-runtime-support's release_archive.py."

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "asset": "mesa-orbis-sdk.tar.xz",
+  "tag_prefix": "mesa",
+  "outputs": [],
+  "files": [
+    "vulkan-mesa/build-manifest.json",
+    "vulkan-mesa/mesa/meson-info/intro-buildoptions.json",
+    "vulkan-mesa/mesa/src/egl/libEGL.a",
+    "vulkan-mesa/mesa/src/gallium/targets/dri/libgallium-*.a",
+    "vulkan-mesa/mesa/src/amd/vulkan/libvulkan_radeon.a",
+    "vulkan-mesa/mesa/src/mesa/glapi/es2api/libGLESv2.a",
+    "vulkan-mesa/mesa/subprojects/zlib-*/libz.a",
+    "sources/mesa/include",
+    "sources/mesa/docs/license.rst",
+    "sources/mesa/subprojects/zlib-1.3.1/LICENSE",
+    "sources/orbis-compat",
+    "sources/orbis-porting-kit"
+  ]
+}

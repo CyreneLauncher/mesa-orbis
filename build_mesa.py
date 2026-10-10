@@ -14,8 +14,10 @@ import zipfile
 from pathlib import Path
 
 
-INTEGRATION = Path(os.environ.get("ORBIS_LAUNCHER_ROOT", Path(__file__).resolve().parent.parent / "orbis-launcher")).resolve()
-BUILD_ROOT = INTEGRATION / "graphics-probe/build"
+REPOSITORY = Path(__file__).resolve().parent
+# deps/ (host tools), sources/ (pinned checkouts) and outputs; the launcher sets its graphics-probe/build.
+BUILD_ROOT = Path(os.environ.get("ORBIS_BUILD_ROOT") or REPOSITORY / "build")
+TOOLS = REPOSITORY / "orbis-port/tools"
 
 
 def inside_build(path):
@@ -25,7 +27,7 @@ def inside_build(path):
     return resolved
 
 
-LOCK = INTEGRATION / "graphics-probe/deps.lock.json"
+LOCK = REPOSITORY / "orbis-port/build.lock.json"
 
 
 def sha256(path):
@@ -390,7 +392,7 @@ def build(sources, sdk, output, radeonsi=False, keep_going=False):
             output / "gllinkprobe-wchar-audit.log", env=env)
         link_inputs = output / "link-inputs.json"
         link_inputs.write_text(json.dumps(link_tokens, indent=2) + "\n")
-        run([sys.executable, INTEGRATION / "graphics-probe/tools/audit_link.py",
+        run([sys.executable, TOOLS / "audit_link.py",
              "--check-link-inputs", link_inputs, "--cwd", mesa,
              "--sdk", sdk, "--build-root", BUILD_ROOT],
             output / "link-input-audit.log", env=env)
@@ -403,7 +405,7 @@ def build(sources, sdk, output, radeonsi=False, keep_going=False):
                 raise RuntimeError("missing build artifact: " + str(path))
             manifest["archives"][str(path.relative_to(output))] = {
                 "sha256": sha256(path), "bytes": path.stat().st_size}
-        run([sys.executable, INTEGRATION / "graphics-probe/tools/audit_link.py",
+        run([sys.executable, TOOLS / "audit_link.py",
              *[arg for archive in archives for arg in ("--archive", archive)],
              "--elf", probe, "--sdk", sdk], output / "symbol-audit.log", env=env)
         manifest["audits"] = {"link_inputs": str(link_inputs.relative_to(output)),
